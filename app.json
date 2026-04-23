@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "ParkSense",
+    "slug": "parksense",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#070d16"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "permissions": [
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN",
+        "ACCESS_FINE_LOCATION",
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#070d16"
+      },
+      "package": "com.anonymous.parksense"
+    },
+    "ios": {
+      "supportsTablet": false
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-asset",
+      "expo-font"
+    ]
+  }
+}
