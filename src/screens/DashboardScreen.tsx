@@ -151,6 +151,22 @@ export function DashboardScreen() {
     setParkingSlots((prev) => [...prev]);
   };
 
+  const parseAndUpdateSlot = (message: string) => {
+    // Parse messages like "SLOT:1,occupied" or "SLOT:2,available"
+    const match = message.match(/SLOT:(\d+),(\w+)/);
+    if (match) {
+      const slotNumber = parseInt(match[1], 10);
+      const status = match[2] as 'occupied' | 'available';
+      const slotId = `S${slotNumber}`; // Convert to 'S1', 'S2', etc
+      
+      setParkingSlots((prev) =>
+        prev.map((slot) =>
+          slot.id === slotId ? { ...slot, status } : slot
+        )
+      );
+    }
+  };
+
   const handleToggleConnection = async () => {
     if (bluetoothLoading) {
       return;
@@ -167,6 +183,7 @@ export function DashboardScreen() {
       }
 
       const connection = await connectToHc05(HC05_DEVICE_NAME, (message) => {
+        parseAndUpdateSlot(message);
         setLastBluetoothMessage(`HC-05: ${message}`);
       });
 

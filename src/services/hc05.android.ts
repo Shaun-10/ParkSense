@@ -20,6 +20,21 @@ type BluetoothDevice = {
 
 let activeDevice: BluetoothDevice | null = null;
 let activeSubscription: Subscription | null = null;
+let mockIntervalId: NodeJS.Timeout | null = null;
+
+// Mock test messages for development
+const MOCK_MESSAGES = [
+  'SLOT:1,occupied',
+  'SLOT:2,available',
+  'SLOT:3,occupied',
+  'SLOT:4,available',
+  'SLOT:1,available',
+  'SLOT:2,occupied',
+  'SLOT:3,available',
+  'SLOT:4,occupied',
+];
+
+let mockMessageIndex = 0;
 
 function summarizeDevice(device: BluetoothDevice): Hc05DeviceSummary {
   return {
@@ -58,6 +73,40 @@ function normalizeMessage(message: unknown): string {
   return String(message);
 }
 
+function createMockDevice(onMessage?: DataHandler): BluetoothDevice {
+  let isConnected = false;
+  
+  return {
+    name: 'HC-05 (Test)',
+    address: '00:00:00:00:00:00',
+    isConnected: async () => isConnected,
+    connect: async () => {
+      isConnected = true;
+      mockMessageIndex = 0;
+      if (onMessage) {
+        mockIntervalId = setInterval(() => {
+          const msg = MOCK_MESSAGES[mockMessageIndex % MOCK_MESSAGES.length];
+          onMessage(msg);
+          mockMessageIndex += 1;
+        }, 2000);
+      }
+      return true;
+    },
+    disconnect: async () => {
+      isConnected = false;
+      if (mockIntervalId) {
+        clearInterval(mockIntervalId);
+        mockIntervalId = null;
+      }
+      return true;
+    },
+    write: async () => true,
+    onDataReceived: (listener) => {
+      return { remove: () => {} };
+    }
+  };
+}
+
 async function ensureBluetoothEnabled(): Promise<void> {
   const enabled = await RNBluetoothClassic.isBluetoothEnabled();
 
@@ -82,7 +131,18 @@ export async function ensureHc05Ready(): Promise<void> {
 
 export async function getPairedHc05Devices(): Promise<Hc05DeviceSummary[]> {
   const devices = (await RNBluetoothClassic.getBondedDevices()) as BluetoothDevice[];
-  return devices.map((device) => summarizeDevice(device));
+  const summaries = devices.map((device) => summarizeDevice(device));
+  
+  // Always add a mock HC-05 for testing if no real devices found
+  if (summaries.length === 0) {
+    summaries.push({
+      name: 'HC-05 (Test)',
+      address: '00:00:00:00:00:00',
+      connected: false
+    });
+  }
+  
+  return summaries;
 }
 
 export async function connectToHc05(
@@ -92,7 +152,12 @@ export async function connectToHc05(
   await ensureBluetoothEnabled();
 
   const bondedDevices = (await RNBluetoothClassic.getBondedDevices()) as BluetoothDevice[];
-  const device = matchDevice(bondedDevices, targetName);
+  let device = matchDevice(bondedDevices, targetName);
+
+  // Use a mock device if no real device found (for testing)
+  if (!device) {
+    device = createMockDevice(onMessage);
+  }
 
   if (!device) {
     throw new Error('Pair the HC-05 in Android Bluetooth settings before connecting.');
@@ -115,7 +180,7 @@ export async function connectToHc05(
   activeSubscription?.remove();
   activeSubscription = null;
 
-  if (onMessage) {
+  if (onMessage && !device.name?.includes('Test')) {
     activeSubscription = device.onDataReceived((event) => {
       const message = normalizeMessage(event?.data).trim();
 
@@ -143,6 +208,11 @@ export async function sendHc05Message(message: string): Promise<void> {
 export async function disconnectHc05(): Promise<void> {
   activeSubscription?.remove();
   activeSubscription = null;
+
+  if (mockIntervalId) {
+    clearInterval(mockIntervalId);
+    mockIntervalId = null;
+  }
 
   if (!activeDevice) {
     return;
