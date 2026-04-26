@@ -5,6 +5,8 @@ import {
 } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  PermissionsAndroid,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -49,8 +51,51 @@ export function DashboardScreen() {
   useEffect(() => {
     let cancelled = false;
 
+    const requestBluetoothPermissions = async (): Promise<boolean> => {
+      if (Platform.OS !== 'android') {
+        return true;
+      }
+
+      try {
+        if (Platform.Version >= 31) {
+          // Android 12+
+          const result = await PermissionsAndroid.requestMultiple([
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+          ]);
+          const allGranted = Object.values(result).every(
+            (perm) => perm === PermissionsAndroid.RESULTS.GRANTED
+          );
+          return allGranted;
+        } else {
+          // Android 11 and below
+          const result = await PermissionsAndroid.requestMultiple([
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH,
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADMIN,
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          ]);
+          const allGranted = Object.values(result).every(
+            (perm) => perm === PermissionsAndroid.RESULTS.GRANTED
+          );
+          return allGranted;
+        }
+      } catch (err) {
+        console.warn('Permission request failed:', err);
+        return false;
+      }
+    };
+
     const initializeBluetooth = async () => {
       try {
+        const permissionsGranted = await requestBluetoothPermissions();
+        if (!permissionsGranted) {
+          if (!cancelled) {
+            setBluetoothReady(false);
+            setLastBluetoothMessage('Bluetooth permissions not granted. Please enable in Settings.');
+          }
+          return;
+        }
+
         const supported = await isHc05Supported();
 
         if (cancelled) {
