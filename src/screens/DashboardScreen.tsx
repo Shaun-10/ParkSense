@@ -1,7 +1,6 @@
 import {
   Ionicons,
   MaterialCommunityIcons,
-  MaterialIcons
 } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -42,10 +41,9 @@ export function DashboardScreen() {
     const total = parkingSlots.length;
     const available = parkingSlots.filter((slot) => slot.status === 'available').length;
     const occupied = parkingSlots.filter((slot) => slot.status === 'occupied').length;
-    const free = total - occupied;
     const occupancy = total > 0 ? Math.round((occupied / total) * 100) : 0;
 
-    return { total, available, occupied, free, occupancy };
+    return { available, occupied, occupancy };
   }, [parkingSlots]);
 
   useEffect(() => {
@@ -279,12 +277,6 @@ export function DashboardScreen() {
 
         <View style={styles.statsGrid}>
           <StatCard
-            label="Total Slots"
-            value={stats.total}
-            accentColor="#98a8c3"
-            icon={<MaterialCommunityIcons name="view-grid-outline" size={20} color="#98a8c3" />}
-          />
-          <StatCard
             label="Available"
             value={stats.available}
             accentColor="#2cd97f"
@@ -295,12 +287,6 @@ export function DashboardScreen() {
             value={stats.occupied}
             accentColor="#ff4e57"
             icon={<MaterialCommunityIcons name="car-outline" size={20} color="#ff4e57" />}
-          />
-          <StatCard
-            label="Free"
-            value={stats.free}
-            accentColor="#ffd23d"
-            icon={<MaterialIcons name="event-seat" size={20} color="#ffd23d" />}
           />
         </View>
 
